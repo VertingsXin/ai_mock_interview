@@ -1,0 +1,119 @@
+Yes—this can be built as a Flask web app with authentication, topic selection, and a mock interview flow, using spaCy for NLP scoring and a small FastAPI microservice for answer correctness checks, backed by a free-tier cloud PostgreSQL or MongoDB database. Below is a suggested architecture, tech stack, and step‑by‑step implementation plan with code pointers and hosting options.
+
+
+
+## Architecture
+- Web UI: Flask app with routes for register, login, dashboard, topic selection, and “Start Interview,” storing sessions via Flask‑Login.
+- Auth/session: Flask‑Login + hashed passwords; can also integrate an external identity provider if desired.
+- Interview engine: 
+  - Question source: predefined dataset of PYQs and interview questions keyed by subject/topic.[4][8]
+  - NLP scoring: spaCy similarity and grammar/style heuristics for answer quality and feedback.[8][4]
+  - Correctness API: small FastAPI service that receives (question, answer, topic) and returns a correctness score/rationale separate from the Flask app.[4][8]
+- Database: Free cloud PostgreSQL or MongoDB for users, questions, attempts, and feedback; both have free-tier options.[5][6][7]
+- Deployment: Host Flask and FastAPI on a PaaS (e.g., render/fly/koyeb) and connect to a managed free-tier DB.[7][5]
+
+
+
+## Tech stack choices
+- Backend: Flask for web views; FastAPI microservice for correctness endpoint.[2][3]
+- Auth: Flask‑Login + Werkzeug password hashing.[1][2]
+- NLP: spaCy en_core_web_md/lg for semantic similarity and basic linguistic features.[8][4]
+- DB: 
+  - PostgreSQL free tiers (e.g., Koyeb Database Service public preview free hours) or other providers listed.[5][7]
+  - Alternatively MongoDB free-tier tutorials exist if document store is preferred.[6]
+
+
+
+## Data model
+- users: id, email, password_hash, created_at.[1][2]
+- subjects: id, name.[4][8]
+- questions: id, subject_id, text, difficulty, source_tag (PYQ, interview), model_answer.[8][4]
+- interviews: id, user_id, started_at, completed_at, selected_subjects (array/json).[7][5]
+- attempts: id, interview_id, question_id, user_answer, correctness_score, similarity_score, grammar_score, feedback_json, created_at.[4][8]
+
+
+
+## Flow
+1. Register/Login: Users sign up/in, sessions maintained via Flask‑Login.[2][1]
+2. Select topics: After login, present checkbox list of subjects, then “Start Interview.”[1][2]
+3. Interview: Serve N questions from selected subjects; capture each answer.[8][4]
+4. Scoring:
+   - Similarity: spaCy doc similarity between user_answer and model_answer for a semantic score.[4][8]
+   - Grammar/style: use spaCy POS/dependency counts, sentence length, passive voice heuristics for a simple grammar/style score.[8][4]
+   - Correctness: POST to FastAPI microservice that compares answer to key points extracted from model_answer/topic, returns correctness score and short rationale.[8]
+5. Feedback: Aggregate per‑question feedback and generate an end‑of‑test report with strengths, gaps by topic, and interview‑readiness tips.[4][8]
+6. Persist results: Save attempts and feedback to DB; show history page.[5][7]
+
+
+
+## Implementation outline
+
+### Flask app skeleton
+- Dependencies: flask, flask-login, flask-wtf, sqlalchemy or psycopg2 + SQLAlchemy, passlib/werkzeug.security, spaCy, en_core_web_md/lg.[2][1][4][8]
+- Auth with Flask‑Login:
+  - Create User model, user_loader, login_view, and @login_required routes (DigitalOcean/GeeksforGeeks tutorials have step‑by‑step).[1][2]
+- Routes:
+  - GET/POST /register, /login, /logout.[2][1]
+  - GET/POST /topics (select subjects).[1][2]
+  - GET /interview/start creates Interview row and redirects to /interview/q/<idx>.[2]
+  - GET/POST /interview/q/<idx> shows question, accepts answer, calls scoring, saves Attempt; next/finish.[4][8]
+  - GET /interview/summary/<id> shows detailed feedback and suggestions.[8]
+
+Auth references with code patterns:
+- Flask‑Login setup and password hashing patterns are illustrated in guides.[1][2]
+
+### FastAPI microservice
+- Endpoint POST /score with payload: {question, model_answer, user_answer, subject}.[8]
+- Logic: extract key phrases from model_answer, compute coverage of key points in user_answer, and return correctness score with bullets of matched/missed points.[8]
+- Return: {correctness: 0-1, rationale: [...]} to augment spaCy similarity/grammar.[8]
+
+### spaCy scoring snippets
+- Install language model: en_core_web_md or en_core_web_lg.[4][8]
+- Similarity:
+  - doc_sim = nlp(user_answer).similarity(nlp(model_answer)) to get semantic similarity.[8]
+- Grammar/style heuristics:
+  - Count sentence length, filler words, passive constructs (auxpass/“be” + past participle), and run-on indicators to produce a grammar/style score.[8]
+- Word vectors note: md/lg models provide vectors; sm lacks reliable vectors for similarity. Prefer md/lg for better results.[4]
+
+### Question dataset
+- Build a CSV/JSON with columns: subject, question, difficulty, source, model_answer.[4][8]
+- Seed into DB; ensure balanced variety across subjects.[7][5]
+
+### Database selection and hosting
+- PostgreSQL: Consider Koyeb Database Service public preview with free hours; suitable for a student project and integrates with app hosting.[5]
+- Other free options and tradeoffs are listed in roundups; free plans may have resource limits.[7]
+- MongoDB alternative: Tutorials show Flask + MongoDB auth flows if choosing a document DB.[6]
+
+### Feedback generation
+- Per question:
+  - Similarity score, correctness score, grammar/style score with brief explanations.[4][8]
+- Overall:
+  - Weighted subject‑wise averages to flag knowledge gaps.[8]
+  - Interview tips: conciseness, structure (STAR), terminology alignment per topic.[8]
+- Store feedback_json for reproducible summaries.[8]
+
+
+
+## Minimal code skeletons
+
+### Flask route patterns
+- Follow the DigitalOcean/GeeksforGeeks patterns for signup/login and session protection with @login_required.[2][1]
+
+### spaCy usage for similarity
+- Use en_core_web_md/lg per spaCy similarity examples; compute doc.similarity and store.[4][8]
+
+### FastAPI scoring endpoint
+- Create POST endpoint to compute key point coverage and return correctness as a float with rationale list.[8]
+
+
+
+## Hosting plan
+- App hosting: deploy Flask and FastAPI as two services on a PaaS; connect to a managed Postgres instance.[5][7]
+- Database: Start with a free Postgres plan noted in 2025 overviews; mind auto‑sleep and quotas during testing.[7][5]
+
+
+
+## Next steps
+- Confirm subjects to include and provide a small starter dataset of questions/model answers per subject.[4][8]
+- Choose DB (PostgreSQL recommended for relations and analytics) and preferred host.[5][7]
+- Decide whether to keep correctness in FastAPI or fold it into Flask initially, then refactor later.[8]

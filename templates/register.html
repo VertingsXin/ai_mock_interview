@@ -1,0 +1,26 @@
+{% extends "layout.html" %}
+
+{% block content %}
+    <article>
+        <hgroup>
+            <h2>Register an Account</h2>
+            <h3>Create an account to start your mock interviews.</h3>
+        </hgroup>
+        <form method="POST" action="">
+            {{form.hidden_tag()}}
+            <p>
+                {{form.email.label}}<br>
+                {{form.email(size=32)}}
+            </p>
+            <p>
+                {{form.password.label}}<br>
+                {{form.password(size=32)}}
+            </p>
+            <p>
+                {{form.confirm_password.label}}<br>
+                {{form.confirm_password(size=32)}}
+            </p>
+            <p>{{form.submit()}}</p>
+        </form>
+    </article>
+{% endblock %}

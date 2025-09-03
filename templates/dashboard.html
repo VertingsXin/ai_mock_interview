@@ -1,0 +1,9 @@
+{% extends "layout.html" %}
+
+{% block content %}
+    <hgroup>
+        <h2>Welcome, {{current_user.email}}!</h2>
+        <h3>This is your dashboard.</h3>
+    </hgroup>
+    <p>From here, you will be able to select topics and start your interview.</p>
+{% endblock %}
