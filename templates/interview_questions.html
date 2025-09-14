@@ -1,0 +1,12 @@
+{% extends "layout.html" %}
+
+{% block content %}
+    <h2>Question {{question_index + 1 }}</h2>
+    <p>{{question.text}}</p>
+    <form method="POST" action="">
+        {{form.hidden_tag()}}
+        {{form.answer.label}}<br>
+        {{form.answer()}}<br><br>
+        {{form.submit()}}
+    </form>
+{% endblock %}

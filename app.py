@@ -141,33 +141,33 @@ def dashboard():
             return redirect(url_for('dashboard'))
         session['interview_id'] = new_interview.id
         session['question_ids'] = [q.id for q in questions]
-        return redirect(url_for('interview_question', q_idx=0))
+        return redirect(url_for('interview_question', question_index=0))
     return render_template('dashboard.html', title='Dashboard', form=form)
 
-@app.route('/interview/question/<int:q_idx>', methods=['GET', 'POST'])
+@app.route('/interview/question/<int:question_index>', methods=['GET', 'POST'])
 @login_required
-def interview_question(q_idx):
+def interview_question(question_index):
     if 'question_ids' not in session:
         flash('Interview session not found. Please start a new one.')
         return redirect(url_for('dashboard'))
 
     question_ids = session['question_ids']
-    if q_idx >= len(question_ids):
+    if question_index >= len(question_ids):
         return redirect(url_for('interview_summary'))
 
-    question_id = question_ids[q_idx]
+    question_id = question_ids[question_index]
     question = Question.query.get_or_404(question_id)
     form = AnswerForm()
     if form.validate_on_submit():
         attempt = Attempt(interview_id=session['interview_id'], question_id=question_id, user_answer=form.answer.data)
         db.session.add(attempt)
         db.session.commit()
-        next_q_idx = q_idx + 1
+        next_q_idx = question_index + 1
         if next_q_idx < len(question_ids):
-            return redirect(url_for('interview_question', q_idx=next_q_idx))
+            return redirect(url_for('interview_question', question_index=next_q_idx))
         else:
             return redirect(url_for('interview_summary'))
-    return render_template('interview_question.html', question=question, form=form, q_idx=q_idx, total_questions=len(question_ids))
+    return render_template('interview_questions.html', question=question, form=form, question_index=question_index, total_questions=len(question_ids))
 
 
 # Interview Summary Route with NLP Analysis

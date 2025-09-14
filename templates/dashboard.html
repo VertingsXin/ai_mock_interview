@@ -6,4 +6,16 @@
         <h3>This is your dashboard.</h3>
     </hgroup>
     <p>From here, you will be able to select topics and start your interview.</p>
+
+    <article>
+        <form method="POST" action="">
+            {{form.hidden_tag()}}
+            <fieldset>
+                <legend>{{form.subjects.label}}</legend>
+                {{form.subjects()}}
+            </fieldset>
+            <br>
+            {{form.submit(class="primary")}}            
+        </form>
+    </article>
 {% endblock %}
