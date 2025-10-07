@@ -7,6 +7,9 @@ from wtforms import StringField, PasswordField, SubmitField, SelectMultipleField
 from wtforms.validators import DataRequired, Email, EqualTo, Length
 from werkzeug.security import generate_password_hash, check_password_hash
 from dotenv import load_dotenv
+from llm import generate_feedback
+
+import requests
 
 # Import and load spaCy
 import spacy
@@ -139,7 +142,7 @@ def dashboard():
             Question.query
             .filter(Question.subject_id.in_(selected_subject_ids))
             .order_by(db.func.random())
-            .limit(10)
+            .limit(1)
             .all()
         )
         if not questions:
@@ -162,17 +165,27 @@ def interview_question(question_index):
         return redirect(url_for('interview_summary'))
 
     question_id = question_ids[question_index]
-    question = Question.query.get_or_404(question_id)
+    question = db.session.get(Question, question_id)
     form = AnswerForm()
     if form.validate_on_submit():
-        attempt = Attempt(interview_id=session['interview_id'], question_id=question_id, user_answer=form.answer.data)
+        user_answer = form.answer.data
+        question = db.session.get(Question, question_id)
+        model_answer = question.model_answer or ""
+        feedback_text = generate_feedback(user_answer, model_answer)
+        attempt = Attempt(
+            interview_id = session['interview_id'],
+            question_id = question_id,
+            user_answer = user_answer,
+            feedback = feedback_text
+        )
         db.session.add(attempt)
         db.session.commit()
-        next_q_idx = question_index + 1
-        if next_q_idx < len(question_ids):
-            return redirect(url_for('interview_question', question_index=next_q_idx))
+        next_question_index = question_index + 1
+        if next_question_index < len(session['question_ids']):
+            return redirect(url_for('interview_question', question_index = next_question_index))
         else:
             return redirect(url_for('interview_summary'))
+
     return render_template('interview_questions.html', question=question, form=form, question_index=question_index, total_questions=len(question_ids))
 
 
@@ -192,20 +205,13 @@ def interview_summary():
     # Process each answer
     for attempt in interview.attempts:
         if attempt.question.model_answer:
-            # Process with spaCy
+
+            feedback_text = generate_feedback(attempt.user_answer, attempt.question.model_answer)
             doc_user = nlp(attempt.user_answer)
             doc_model = nlp(attempt.question.model_answer)
-            similarity = doc_user.similarity(doc_model)
-            
-            # Store the score
-            attempt.similarity_score = round(similarity * 100, 2)
-            
-            if similarity > 0.85:
-                attempt.feedback = "Excellent! Your answer is very closely aligned with the key concepts."
-            elif similarity > 0.6:
-                attempt.feedback = "Good answer. You've covered the main points, but could add more detail."
-            else:
-                attempt.feedback = "There seems to be a disconnect. Review the topic to better align with the core concepts."
+            attempt.similarity_score = round((doc_user.similarity(doc_model)) * 100, 2)
+            attempt.feedback = feedback_text
+
         else:
             attempt.similarity_score = 0
             attempt.feedback = "No model answer available to compare against."
@@ -215,26 +221,7 @@ def interview_summary():
     return render_template('interview_summary.html', title='Interview Feedback', interview=interview)
 
 
-# def seed_database():
-#     if Subject.query.first(): return
-#     print("Seeding database...")
-#     python_subject = Subject(name='Python')
-#     sql_subject = Subject(name='SQL')
-#     db.session.add_all([python_subject, sql_subject])
-#     db.session.commit()
-#     questions_to_add = [
-#         Question(subject=python_subject, text="What are decorators in Python?", model_answer="A decorator is a design pattern in Python that allows a user to add new functionality to an existing object without modifying its structure. They are often used for logging, timing, and authentication."),
-#         Question(subject=python_subject, text="Explain the difference between a list and a tuple.", model_answer="The primary difference is that lists are mutable, meaning their elements can be changed after creation, while tuples are immutable. Because of this, tuples can be used as dictionary keys and are generally faster than lists."),
-#         Question(subject=sql_subject, text="What is the difference between DELETE and TRUNCATE?", model_answer="DELETE is a DML command that removes rows one by one based on a WHERE clause and fires triggers. It can be rolled back. TRUNCATE is a DDL command that quickly deallocates all space for a table without scanning it and cannot be rolled back easily."),
-#         Question(subject=sql_subject, text="Explain different types of SQL joins.", model_answer="The main types are INNER JOIN, which returns records with matching values in both tables. LEFT JOIN returns all records from the left table and matched ones from the right. RIGHT JOIN is the opposite. FULL OUTER JOIN returns all records when there is a match in either the left or right table.")
-#     ]
-#     db.session.add_all(questions_to_add)
-#     db.session.commit()
-#     print("Database seeding complete.")
-
-
 if __name__ == '__main__':
     with app.app_context():
         db.create_all()
-        seed_database()
     app.run(debug=True)

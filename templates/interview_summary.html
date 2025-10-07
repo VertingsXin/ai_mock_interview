@@ -11,7 +11,7 @@
     <details>
         <summary>
             <strong>Q: {{ attempt.question.text }}</strong> -
-            <span style="font-weight: bold;">Score: {{ attempt.similarity_score }}%</span>
+            <span style="font-weight: bold;">Accuracy: {{ attempt.similarity_score }}%</span>
         </summary>
         <div class="grid">
             <article>
@@ -20,7 +20,7 @@
             </article>
             <article>
                 <header>Feedback</header>
-                <p><strong>Similarity Score:</strong> {{ attempt.similarity_score }}%</p>
+                <p><strong>Accuracy:</strong> {{ attempt.similarity_score }}%</p>
                 <p><strong>Suggestion:</strong> {{ attempt.feedback }}</p>
             </article>
         </div>
