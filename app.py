@@ -34,8 +34,8 @@ class Attempt(db.Model):
     interview_id = db.Column(db.Integer, db.ForeignKey('interview.id'), nullable=False)
     question_id = db.Column(db.Integer, db.ForeignKey('question.id'), nullable=False)
     user_answer = db.Column(db.Text, nullable=False)
-    similarity_score = db.Column(db.Float, nullable=True) # Score from spaCy
-    feedback = db.Column(db.Text, nullable=True) # General feedback text
+    similarity_score = db.Column(db.Float, nullable=True) 
+    feedback = db.Column(db.Text, nullable=True) 
     interview = db.relationship('Interview', backref='attempts')
     question = db.relationship('Question', backref='attempts')
 
