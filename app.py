@@ -135,7 +135,13 @@ def dashboard():
         new_interview = Interview(user_id=current_user.id)
         db.session.add(new_interview)
         db.session.commit()
-        questions = Question.query.filter(Question.subject_id.in_(selected_subject_ids)).limit(5).all()
+        questions = (
+            Question.query
+            .filter(Question.subject_id.in_(selected_subject_ids))
+            .order_by(db.func.random())
+            .limit(10)
+            .all()
+        )
         if not questions:
             flash("No questions found for the selected subjects. Please try other subjects.")
             return redirect(url_for('dashboard'))
@@ -209,22 +215,22 @@ def interview_summary():
     return render_template('interview_summary.html', title='Interview Feedback', interview=interview)
 
 
-def seed_database():
-    if Subject.query.first(): return
-    print("Seeding database...")
-    python_subject = Subject(name='Python')
-    sql_subject = Subject(name='SQL')
-    db.session.add_all([python_subject, sql_subject])
-    db.session.commit()
-    questions_to_add = [
-        Question(subject=python_subject, text="What are decorators in Python?", model_answer="A decorator is a design pattern in Python that allows a user to add new functionality to an existing object without modifying its structure. They are often used for logging, timing, and authentication."),
-        Question(subject=python_subject, text="Explain the difference between a list and a tuple.", model_answer="The primary difference is that lists are mutable, meaning their elements can be changed after creation, while tuples are immutable. Because of this, tuples can be used as dictionary keys and are generally faster than lists."),
-        Question(subject=sql_subject, text="What is the difference between DELETE and TRUNCATE?", model_answer="DELETE is a DML command that removes rows one by one based on a WHERE clause and fires triggers. It can be rolled back. TRUNCATE is a DDL command that quickly deallocates all space for a table without scanning it and cannot be rolled back easily."),
-        Question(subject=sql_subject, text="Explain different types of SQL joins.", model_answer="The main types are INNER JOIN, which returns records with matching values in both tables. LEFT JOIN returns all records from the left table and matched ones from the right. RIGHT JOIN is the opposite. FULL OUTER JOIN returns all records when there is a match in either the left or right table.")
-    ]
-    db.session.add_all(questions_to_add)
-    db.session.commit()
-    print("Database seeding complete.")
+# def seed_database():
+#     if Subject.query.first(): return
+#     print("Seeding database...")
+#     python_subject = Subject(name='Python')
+#     sql_subject = Subject(name='SQL')
+#     db.session.add_all([python_subject, sql_subject])
+#     db.session.commit()
+#     questions_to_add = [
+#         Question(subject=python_subject, text="What are decorators in Python?", model_answer="A decorator is a design pattern in Python that allows a user to add new functionality to an existing object without modifying its structure. They are often used for logging, timing, and authentication."),
+#         Question(subject=python_subject, text="Explain the difference between a list and a tuple.", model_answer="The primary difference is that lists are mutable, meaning their elements can be changed after creation, while tuples are immutable. Because of this, tuples can be used as dictionary keys and are generally faster than lists."),
+#         Question(subject=sql_subject, text="What is the difference between DELETE and TRUNCATE?", model_answer="DELETE is a DML command that removes rows one by one based on a WHERE clause and fires triggers. It can be rolled back. TRUNCATE is a DDL command that quickly deallocates all space for a table without scanning it and cannot be rolled back easily."),
+#         Question(subject=sql_subject, text="Explain different types of SQL joins.", model_answer="The main types are INNER JOIN, which returns records with matching values in both tables. LEFT JOIN returns all records from the left table and matched ones from the right. RIGHT JOIN is the opposite. FULL OUTER JOIN returns all records when there is a match in either the left or right table.")
+#     ]
+#     db.session.add_all(questions_to_add)
+#     db.session.commit()
+#     print("Database seeding complete.")
 
 
 if __name__ == '__main__':
