@@ -1,7 +1,13 @@
-from gpt4all import GPT4All
+import os
+from dotenv import load_dotenv
+from huggingface_hub import InferenceClient
 
-# Load the model (use your actual model path)
-model = GPT4All("Meta-Llama-3-8B-Instruct.Q4_0.gguf")  # or your file if stored locally
+api_key = os.getenv("HF_TOKEN")
+
+client = InferenceClient(
+    provider="hf-inference",
+    api_key=api_key,
+)
 
 def generate_feedback(user_answer: str, model_answer: str) -> str:
     prompt = f"""
@@ -18,7 +24,12 @@ Model answer:
 
 Your evaluation:
 """
-    full_response = model.generate(prompt, max_tokens=150)
-    sentences = text.split('.')
-    sentences = [s.strip() for s in sentences if s.strip()]
-    return '. '.join(sentences[:2]) + ('.' if len(sentences) >= 2 else '')
+
+    completion = client.chat.completions.create(
+        model="HuggingFaceTB/SmolLM3-3B",
+        messages=[{"role": "user", "content": prompt}],
+        max_tokens=150,
+    )
+
+    return completion.choices[0].message['content']
+
